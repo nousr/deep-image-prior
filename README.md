@@ -1,5 +1,7 @@
 ## Edits made to this repo by Katherine Crowson
 
+I have added several features to this repository for use in creating higher quality generative art (feature visualization probably also benefits):
+
 * [Deformable convolutions](https://arxiv.org/abs/1703.06211) have been added.
 
 * Higher quality non-learnable upsampling filters (bicubic, Lanczos) have been added, with matching downsampling filters. A bilinear downsampling filter which low pass filters properly has also been added.
@@ -14,7 +16,7 @@ from models import get_hq_skip_net
 net = get_hq_skip_net(input_depth).to(device)
 ```
 
-`get_hq_skip_net()` provides higher quality defaults for the skip net, using the added features, than `get_net()`. Deformable convolutions can be slow and if this is a problem you can disable them with `get_hq_skip_net(deform_groups=0)`.
+`get_hq_skip_net()` provides higher quality defaults for the skip net, using the added features, than `get_net()`. Deformable convolutions can be slow and if this is a problem you can disable them with `deform_groups=0`. The decorrelated color space can be turned off with `decorr_rgb=False`. The `upsample_mode` and `downsample_mode` defaults are now `'cubic'` for visual quality, I would recommend not going below `'linear'`. The default channel count and number of scales has been increased.
 
 # Original README
 
