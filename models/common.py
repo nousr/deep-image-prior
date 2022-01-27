@@ -133,7 +133,7 @@ def bn(num_features):
     return nn.BatchNorm2d(num_features)
 
 
-def conv(in_f, out_f, kernel_size, stride=1, bias=True, pad='zero', downsample_mode='stride', deform_groups=0):
+def conv(in_f, out_f, kernel_size, stride=1, bias=True, pad='zero', downsample_mode='stride', offset_groups=0, offset_type='1x1'):
     downsampler = None
     if stride != 1 and downsample_mode != 'stride':
 
@@ -154,15 +154,21 @@ def conv(in_f, out_f, kernel_size, stride=1, bias=True, pad='zero', downsample_m
         padder = nn.ReflectionPad2d(to_pad)
         to_pad = 0
 
-    if kernel_size == 1 or not deform_groups:
+    if kernel_size == 1 or not offset_groups:
         convolver = nn.Conv2d(in_f, out_f, kernel_size, stride, padding=to_pad, bias=bias)
     else:
-        while deform_groups > 1 and in_f % deform_groups != 0:
-            deform_groups -= 1
+        while offset_groups > 1 and in_f % offset_groups != 0:
+            offset_groups -= 1
         main_layer = ops.DeformConv2d(in_f, out_f, kernel_size, stride, padding=to_pad, bias=bias)
-        offset_layer = nn.Conv2d(in_f, 2 * deform_groups * kernel_size * kernel_size, 1, stride, padding=to_pad)
-        convolver = DeformConvWrapper(main_layer, offset_layer, padder)
-        padder = None
+        if offset_type == '1x1':
+            offset_layer = nn.Conv2d(in_f, 2 * offset_groups * kernel_size * kernel_size, 1, stride, padding=to_pad)
+            convolver = DeformConvWrapper(main_layer, offset_layer, padder)
+            padder = None
+        elif offset_type == 'full':
+            offset_layer = nn.Conv2d(in_f, 2 * offset_groups * kernel_size * kernel_size, kernel_size, stride, padding=to_pad)
+            convolver = DeformConvWrapper(main_layer, offset_layer)
+        else:
+            assert False
 
     layers = filter(lambda x: x is not None, [padder, convolver, downsampler])
     return nn.Sequential(*layers)

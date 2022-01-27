@@ -9,7 +9,7 @@ def skip(
         filter_size_down=3, filter_size_up=3, filter_skip_size=1,
         need_sigmoid=True, need_bias=True, decorr_rgb=False,
         pad='zero', upsample_mode='nearest', downsample_mode='stride', act_fun='LeakyReLU', 
-        need1x1_up=True, deform_groups=0):
+        need1x1_up=True, offset_groups=0, offset_type='full'):
     """Assembles encoder-decoder with skip connections.
 
     Arguments:
@@ -35,8 +35,8 @@ def skip(
     if not (isinstance(filter_size_up, list) or isinstance(filter_size_up, tuple)) :
         filter_size_up   = [filter_size_up]*n_scales
 
-    if not (isinstance(deform_groups, list) or isinstance(deform_groups, tuple)) :
-        deform_groups   = [deform_groups]*n_scales
+    if not (isinstance(offset_groups, list) or isinstance(offset_groups, tuple)) :
+        offset_groups   = [offset_groups]*n_scales
 
     last_scale = n_scales - 1
 
@@ -59,17 +59,17 @@ def skip(
         model_tmp.add(bn(num_channels_skip[i] + (num_channels_up[i + 1] if i < last_scale else num_channels_down[i])))
 
         if num_channels_skip[i] != 0:
-            skip.add(conv(input_depth, num_channels_skip[i], filter_skip_size, bias=need_bias, pad=pad, deform_groups=deform_groups[i]))
+            skip.add(conv(input_depth, num_channels_skip[i], filter_skip_size, bias=need_bias, pad=pad, offset_groups=offset_groups[i], offset_type=offset_type))
             skip.add(bn(num_channels_skip[i]))
             skip.add(act(act_fun))
 
         # skip.add(Concat(2, GenNoise(nums_noise[i]), skip_part))
 
-        deeper.add(conv(input_depth, num_channels_down[i], filter_size_down[i], 2, bias=need_bias, pad=pad, downsample_mode=downsample_mode[i], deform_groups=deform_groups[i]))
+        deeper.add(conv(input_depth, num_channels_down[i], filter_size_down[i], 2, bias=need_bias, pad=pad, downsample_mode=downsample_mode[i], offset_groups=offset_groups[i], offset_type=offset_type))
         deeper.add(bn(num_channels_down[i]))
         deeper.add(act(act_fun))
 
-        deeper.add(conv(num_channels_down[i], num_channels_down[i], filter_size_down[i], bias=need_bias, pad=pad, deform_groups=deform_groups[i]))
+        deeper.add(conv(num_channels_down[i], num_channels_down[i], filter_size_down[i], bias=need_bias, pad=pad, offset_groups=offset_groups[i], offset_type=offset_type))
         deeper.add(bn(num_channels_down[i]))
         deeper.add(act(act_fun))
 
@@ -84,7 +84,7 @@ def skip(
 
         deeper.add(up(upsample_mode[i]))
 
-        model_tmp.add(conv(num_channels_skip[i] + k, num_channels_up[i], filter_size_up[i], 1, bias=need_bias, pad=pad, deform_groups=deform_groups[i]))
+        model_tmp.add(conv(num_channels_skip[i] + k, num_channels_up[i], filter_size_up[i], 1, bias=need_bias, pad=pad, offset_groups=offset_groups[i], offset_type=offset_type))
         model_tmp.add(bn(num_channels_up[i]))
         model_tmp.add(act(act_fun))
 

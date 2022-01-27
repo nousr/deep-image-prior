@@ -32,13 +32,41 @@ def get_net(input_depth, NET_TYPE, pad, upsample_mode, n_channels=3, act_fun='Le
     return net
 
 
-def get_hq_skip_net(input_depth, pad='reflection', upsample_mode='cubic', n_channels=3, act_fun='LeakyReLU', skip_n33d=192, skip_n33u=192, skip_n11=4, num_scales=6, downsample_mode='cubic', decorr_rgb=True, deform_groups=4):
+def get_hq_skip_net(input_depth, pad='reflection', upsample_mode='cubic', n_channels=3, act_fun='LeakyReLU', skip_n33d=192, skip_n33u=192, skip_n11=4, num_scales=6, downsample_mode='cubic', decorr_rgb=True, offset_groups=4, offset_type='1x1'):
     """Constructs and returns a skip network with higher quality default settings, including
-    deformable convolutions (can be slow, disable with deform_groups=0)."""
+    deformable convolutions (can be slow, disable with offset_groups=0). Further
+    improvements can be seen by setting offset_type to 'full', but then you may have to
+    reduce the learning rate of the offset layers to ~1/10 of the rest of the layers. See
+    the get_offset_params() and get_non_offset_params() functions to construct the
+    parameter groups."""
     net = skip(input_depth, n_channels, num_channels_down = [skip_n33d]*num_scales if isinstance(skip_n33d, int) else skip_n33d,
                                         num_channels_up =   [skip_n33u]*num_scales if isinstance(skip_n33u, int) else skip_n33u,
                                         num_channels_skip = [skip_n11]*num_scales if isinstance(skip_n11, int) else skip_n11, 
                                         upsample_mode=upsample_mode, downsample_mode=downsample_mode,
                                         need_sigmoid=True, need_bias=True, decorr_rgb=decorr_rgb, pad=pad, act_fun=act_fun,
-                                        deform_groups=deform_groups)
+                                        offset_groups=offset_groups, offset_type=offset_type)
     return net
+
+
+def get_offset_params(net):
+    """Returns an iterable of parameters of layers that output offsets for deformable
+    convolutions (for setting their learning rate lower than the rest).
+
+    Example:
+        >>> params = [{'params': get_non_offset_params(net), 'lr': lr},
+        >>>           {'params': get_offset_params(net), 'lr': lr / 10}]
+        >>> opt = optim.Adam(params)
+    """
+    return [p for n, p in net.named_parameters() if 'offset_branch' in n]
+
+
+def get_non_offset_params(net):
+    """Returns an iterable of parameters of layers that do not output offsets for
+    deformable convolutions.
+
+    Example:
+        >>> params = [{'params': get_non_offset_params(net), 'lr': lr},
+        >>>           {'params': get_offset_params(net), 'lr': lr / 10}]
+        >>> opt = optim.Adam(params)
+    """
+    return [p for n, p in net.named_parameters() if 'offset_branch' not in n]

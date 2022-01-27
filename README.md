@@ -16,7 +16,17 @@ from models import get_hq_skip_net
 net = get_hq_skip_net(input_depth).to(device)
 ```
 
-`get_hq_skip_net()` provides higher quality defaults for the skip net, using the added features, than `get_net()`. Deformable convolutions can be slow and if this is a problem you can disable them with `deform_groups=0`. The decorrelated color space can be turned off with `decorr_rgb=False`. The `upsample_mode` and `downsample_mode` defaults are now `'cubic'` for visual quality, I would recommend not going below `'linear'`. The default channel count and number of scales has been increased.
+`get_hq_skip_net()` provides higher quality defaults for the skip net, using the added features, than `get_net()`. Deformable convolutions can be slow and if this is a problem you can disable them with `offset_groups=0`. The decorrelated color space can be turned off with `decorr_rgb=False`. The `upsample_mode` and `downsample_mode` defaults are now `'cubic'` for visual quality, I would recommend not going below `'linear'`. The default channel count and number of scales has been increased.
+
+The default configuration is to use 1x1 convolution layers to create the offsets for the
+deformable convolutions, because training can become unstable with 3x3. However to make full use of deformable convolutions you may want to use 3x3 offset layers and set their learning rate to around 1/10 of the normal layers:
+
+```python
+net = get_hq_skip_net(input_depth, offset_type='full')
+params = [{'params': get_non_offset_params(net), 'lr': lr},
+          {'params': get_offset_params(net), 'lr': lr / 10}]
+opt = optim.Adam(params)
+```
 
 # Original README
 
