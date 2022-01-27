@@ -59,7 +59,7 @@ def skip(
         model_tmp.add(bn(num_channels_skip[i] + (num_channels_up[i + 1] if i < last_scale else num_channels_down[i])))
 
         if num_channels_skip[i] != 0:
-            skip.add(conv(input_depth, num_channels_skip[i], filter_skip_size, bias=need_bias, pad=pad, deform_groups=min(num_channels_skip[i], deform_groups[i])))
+            skip.add(conv(input_depth, num_channels_skip[i], filter_skip_size, bias=need_bias, pad=pad, deform_groups=deform_groups[i]))
             skip.add(bn(num_channels_skip[i]))
             skip.add(act(act_fun))
 

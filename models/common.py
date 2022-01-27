@@ -157,6 +157,8 @@ def conv(in_f, out_f, kernel_size, stride=1, bias=True, pad='zero', downsample_m
     if kernel_size == 1 or not deform_groups:
         convolver = nn.Conv2d(in_f, out_f, kernel_size, stride, padding=to_pad, bias=bias)
     else:
+        while deform_groups > 1 and in_f % deform_groups != 0:
+            deform_groups -= 1
         main_layer = ops.DeformConv2d(in_f, out_f, kernel_size, stride, padding=to_pad, bias=bias)
         offset_layer = nn.Conv2d(in_f, 2 * deform_groups * kernel_size * kernel_size, 1, stride, padding=to_pad)
         convolver = DeformConvWrapper(main_layer, offset_layer, padder)
