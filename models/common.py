@@ -154,7 +154,7 @@ def conv(in_f, out_f, kernel_size, stride=1, bias=True, pad='zero', downsample_m
         padder = nn.ReflectionPad2d(to_pad)
         to_pad = 0
 
-    if kernel_size == 1 or not offset_groups:
+    if kernel_size == 1 or not offset_groups or not offset_type or offset_type == 'none':
         convolver = nn.Conv2d(in_f, out_f, kernel_size, stride, padding=to_pad, bias=bias)
     else:
         while offset_groups > 1 and in_f % offset_groups != 0:
